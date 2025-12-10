@@ -1,11 +1,11 @@
-// backend/routes/auth.js
+// backend/routes/auth.js - UPDATED
 import bcrypt from "bcryptjs";
 import express from "express";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "MGGUPOFTC@1234"; // fallback for dev
+const JWT_SECRET = process.env.JWT_SECRET || "MGGUPOFTC@1234";
 
 // Register
 router.post("/register", async (req, res) => {
@@ -31,13 +31,27 @@ router.post("/register", async (req, res) => {
       role: role || "buyer"
     });
 
-    const token = jwt.sign({ id: user._id, username: user.username, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+    // ✅ FIX: Include _id in JWT payload for consistency
+    const token = jwt.sign({ 
+      _id: user._id, 
+      id: user._id, // Include both for compatibility
+      username: user.username, 
+      email: user.email, 
+      role: user.role 
+    }, JWT_SECRET, { expiresIn: "7d" });
 
     res.status(201).json({
       success: true,
       message: "Registration successful",
       token,
-      user: { id: user._id, username: user.username, email: user.email, role: user.role }
+      // ✅ FIX: Send consistent user object with _id
+      user: { 
+        _id: user._id,
+        id: user._id, // Include both
+        username: user.username, 
+        email: user.email, 
+        role: user.role 
+      }
     });
   } catch (error) {
     console.error("Registration error:", error);
@@ -57,18 +71,38 @@ router.post("/login", async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(401).json({ success: false, message: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id, username: user.username, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: "7d" });
+    // ✅ FIX: Include _id in JWT payload for consistency
+    const token = jwt.sign({ 
+      _id: user._id,
+      id: user._id, // Include both for compatibility
+      username: user.username, 
+      email: user.email, 
+      role: user.role 
+    }, JWT_SECRET, { expiresIn: "7d" });
 
     res.json({
       success: true,
       message: "Login successful",
       token,
-      user: { id: user._id, username: user.username, email: user.email, role: user.role }
+      // ✅ FIX: Send consistent user object with _id
+      user: { 
+        _id: user._id,
+        id: user._id, // Include both
+        username: user.username, 
+        email: user.email, 
+        role: user.role 
+      }
     });
   } catch (error) {
     console.error("Login error:", error);
     res.status(500).json({ success: false, message: "Server error during login" });
   }
+});
+
+// Add this logout endpoint to clear server-side sessions if needed
+router.post("/logout", (req, res) => {
+  // For JWT, logout is client-side, but we can have this endpoint for future use
+  res.json({ success: true, message: "Logged out successfully" });
 });
 
 export default router;
